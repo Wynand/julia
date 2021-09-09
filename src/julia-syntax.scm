@@ -1332,7 +1332,7 @@
   (let ((tryb   (cadr e))
         (var    (caddr e))
         (catchb (cadddr e)))
-    (cond ((and (length> e 4) (not (equal? caddddr e) '(false)))
+    (cond ((and (length> e 4) (not (equal? (caddddr e) '(false))))
            (if (has-unmatched-symbolic-goto? tryb)
                (error "goto from a try/finally block is not permitted"))
            (if (and (equal? catchb '(false)) (length= e 6))
@@ -1354,9 +1354,9 @@
                    ,(if (symbol-like? var)
                         `(scope-block
                           (block (= ,var (the_exception))
-                                 ,catchb)))
-                        `(scope-block ,catchb))
-                 ,@elseb))
+                                 ,catchb))
+                        `(scope-block ,catchb)))
+                 ,@elseb))))
           (else
            (error "invalid \"try\" form")))))
 
@@ -4455,7 +4455,7 @@ f(x) = yt(x)
             ((trycatch tryfinally trycatchelse)
              (let ((handler-token (make-ssavalue))
                    (catch (make-label))
-                   (els   (if (eq? (car e) 'trycatchelse) (make-label)))
+                   (els   (and (eq? (car e) 'trycatchelse) (make-label)))
                    (endl  (make-label))
                    (last-finally-handler finally-handler)
                    (finally           (if (eq? (car e) 'tryfinally) (new-mutable-var) #f))
@@ -4470,6 +4470,7 @@ f(x) = yt(x)
                       (val (if (and value (not tail))
                                (new-mutable-var) #f)))
                  ;; handler block postfix
+                 (if els (emit v1))
                  (if (and val v1 (not els)) (emit-assignment val v1))
                  (if tail
                      (begin (if (and v1 (not els)) (emit-return v1))
