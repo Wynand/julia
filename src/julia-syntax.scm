@@ -4470,10 +4470,11 @@ f(x) = yt(x)
                       (val (if (and value (not tail))
                                (new-mutable-var) #f)))
                  ;; handler block postfix
-                 (if els (emit v1))
-                 (if (and val v1 (not els)) (emit-assignment val v1))
+                 (if (and val v1) (emit-assignment val v1))
                  (if tail
-                     (begin (if (and v1 (not els)) (emit-return v1))
+                     (begin (if els
+                                (emit '(leave 1))
+                                (if v1 (emit-return v1)))
                             (if (not finally) (set! endl #f)))
                      (begin (emit '(leave 1))
                             (emit `(goto ,(or els endl)))))
