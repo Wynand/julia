@@ -1335,14 +1335,12 @@
     (cond ((and (length> e 4) (not (equal? (caddddr e) '(false))))
            (if (has-unmatched-symbolic-goto? tryb)
                (error "goto from a try/finally block is not permitted"))
-           (if (and (equal? catchb '(false)) (length= e 6))
-               (error "try/else block without catch"))
            (let ((finalb (caddddr e)))
              (expand-forms
               `(tryfinally
-                ,(if (not (equal? catchb '(false)))
-                     `(try ,tryb ,var ,catchb (false) ,@(cdddddr e))
-                     `(scope-block ,tryb))
+                ,(if (and (equal? catchb '(false)) (length= e 5))
+                     `(scope-block ,tryb)
+                     `(try ,tryb ,var ,catchb (false) ,@(cdddddr e)))
                 (scope-block ,finalb)))))
           ((length> e 3)
            (and (length> e 6) (error "invalid \"try\" form"))
@@ -4483,7 +4481,7 @@ f(x) = yt(x)
                  (if els
                      (begin (mark-label els)
                             (let ((v3 (compile (cadddr e) break-labels value tail))) ;; emit else block code
-                              (if (and val v3) (emit-assignment val v3)))
+                              (if val (emit-assignment val v3)))
                             (emit `(goto ,endl))))
                  ;; emit either catch or finally block
                  (mark-label catch)
