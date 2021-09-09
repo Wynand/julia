@@ -1332,25 +1332,31 @@
   (let ((tryb   (cadr e))
         (var    (caddr e))
         (catchb (cadddr e)))
-    (cond ((length= e 5)
+    (cond ((and (length> e 4) (not (equal? caddddr e) '(false)))
            (if (has-unmatched-symbolic-goto? tryb)
                (error "goto from a try/finally block is not permitted"))
-           (let ((finalb (cadddr (cdr e))))
+           (if (and (equal? catchb '(false)) (length= e 6))
+               (error "try/else block without catch"))
+           (let ((finalb (caddddr e)))
              (expand-forms
               `(tryfinally
                 ,(if (not (equal? catchb '(false)))
-                     `(try ,tryb ,var ,catchb)
+                     `(try ,tryb ,var ,catchb (false) ,@(cdddddr e))
                      `(scope-block ,tryb))
                 (scope-block ,finalb)))))
-          ((length= e 4)
-           (expand-forms
-            (if (symbol-like? var)
-                `(trycatch (scope-block ,tryb)
-                           (scope-block
-                            (block (= ,var (the_exception))
-                                   ,catchb)))
-                `(trycatch (scope-block ,tryb)
-                           (scope-block ,catchb)))))
+          ((length> e 3)
+           (and (length> e 6) (error "invalid \"try\" form"))
+           (let ((elseb (if (length= e 6) (cdddddr e) '())))
+             (expand-forms
+               `(,(if (null? elseb) 'trycatch 'trycatchelse)
+                 (scope-block ,tryb)
+                 (scope-block
+                   ,(if (symbol-like? var)
+                        `(scope-block
+                          (block (= ,var (the_exception))
+                                 ,catchb)))
+                        `(scope-block ,catchb))
+                 ,@elseb))
           (else
            (error "invalid \"try\" form")))))
 
@@ -3588,7 +3594,7 @@ f(x) = yt(x)
             ((eq? (car e) 'symboliclabel)
              (kill)
              #t)
-            ((memq (car e) '(if elseif trycatch tryfinally))
+            ((memq (car e) '(if elseif trycatch tryfinally trycatchelse))
              (let ((prev (table.clone live)))
                (if (eager-any (lambda (e) (begin0 (visit e)
                                                   (kill)))
@@ -3654,7 +3660,7 @@ f(x) = yt(x)
         (and cv (vinfo:asgn cv) (vinfo:capt cv)))))
 
 (define (toplevel-preserving? e)
-  (and (pair? e) (memq (car e) '(if elseif block trycatch tryfinally))))
+  (and (pair? e) (memq (car e) '(if elseif block trycatch tryfinally trycatchelse))))
 
 (define (map-cl-convert exprs fname lam namemap defined toplevel interp opaq)
   (if toplevel

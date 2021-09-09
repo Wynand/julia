@@ -1515,8 +1515,8 @@
             (cond
              ((eq? nxt 'end)
               (list* 'try try-block (or catchv '(false))
-                     (or catchb finalb (if elseb '(false) (error "try without catch, finally or else")))
-                     (cond (elseb  (list finalb elseb))
+                     (or catchb (if finalb '(false) (error "try without catch or finally")))
+                     (cond (elseb  (list (or finalb '(false)) elseb))
                            (finalb (list finalb))
                            (else   '()))))
              ((and (eq? nxt 'catch)
